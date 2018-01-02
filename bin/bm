@@ -1,0 +1,173 @@
+#!/bin/bash
+unset BRANCH
+
+BASE=`pwd`
+GITS=`find . -name .git -type d -prune`
+
+TOTAL=`find . -name .git -type d -prune | wc -l`
+
+
+# set verbose level to info
+__VERBOSE=3
+__QUIET="--quiet"
+
+declare -a LOG_LEVELS
+LOG_LEVELS=([0]="emerg" [1]="alert" [2]="crit" [3]="err" [4]="warning" [5]="notice" [6]="info" [7]="debug")
+function .log () {
+  local LEVEL=${1}
+  shift
+  if [ ${__VERBOSE} -ge ${LEVEL} ]; then
+    echo "[${LOG_LEVELS[$LEVEL]}]" "$@"
+  fi
+}
+
+clean() {
+    COUNT=0
+    echo -ne '\t'$COUNT/$TOTAL'\r'
+
+    for g in $GITS
+    do
+        COUNT=$((COUNT+1))
+
+    	cd $BASE
+    	cd $g/..
+
+        git branch --merged | grep -v "\*" | xargs -n 1 git branch -d ${__QUIET}
+
+        git fetch -p ${__QUIET} && for branch in `git branch -vv | awk '{print $1,$4}' | grep 'gone]' | awk '{print $1}'`; do git branch -D $branch ${__QUIET}; done
+
+        echo -ne '\t'$COUNT/$TOTAL'\r'
+    done
+}
+
+reset() {
+    COUNT=0
+    echo -ne '\t'$COUNT/$TOTAL'\r'
+
+    for g in $GITS
+    do
+        COUNT=$((COUNT+1))
+
+    	cd $BASE
+    	cd $g/..
+
+        git fetch origin ${__QUIET}
+        git reset --hard origin/master ${__QUIET}
+        git pull ${__QUIET}
+
+        echo -ne '\t'$COUNT/$TOTAL'\r'
+    done
+}
+
+getRemoteBranch() {
+	remote=`git branch -a | grep $BRANCH`
+    if [ -n "$remote" ]; then
+        	git checkout -b $BRANCH origin/$BRANCH --quiet
+		return 1
+	else
+		return 0
+	fi
+}
+
+switch() {
+
+    unset NOTFOUND
+    COUNT=0
+
+    echo -ne '\t'$COUNT/$TOTAL'\r'
+
+    for g in $GITS
+    do
+        COUNT=$((COUNT+1))
+
+    	cd $BASE
+    	cd $g/..
+
+        DIR=`pwd`
+
+    	git checkout master --quiet
+
+    	if [ $BRANCH == "master" ]; then
+            .log 6 switched to $BRANCH in $DIR
+            echo -ne '\t'$COUNT/$TOTAL'\r'
+    		continue
+    	fi
+
+    	exists=`git show-ref refs/heads/$BRANCH`
+    	if [ -n "$exists" ]; then
+    		git checkout $BRANCH --quiet
+            .log 6 switched to $BRANCH in $DIR
+    	else
+    		getRemoteBranch
+    		if [ "$?" -eq "0" ]; then
+    			git fetch origin --quiet
+    			getRemoteBranch
+                if [ "$?" -eq "0" ]; then
+                    NOTFOUND=0
+                    .log 4 $BRANCH not found in $DIR
+                else
+                    .log 6 switched to $BRANCH in $DIR
+                fi
+            else
+                .log 6 switched to $BRANCH in $DIR
+            fi
+    	fi
+
+        echo -ne '\t'$COUNT/$TOTAL'\r'
+    done
+}
+
+man() {
+    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-s <branch>] -- git branch manager for subdirectories
+
+    navigates directories below the starting point and executes the selected option on each git repo found
+
+    where:
+    -h  show this help text
+    -c  cleanup: deleted merged branches; delete local branches when the remote branch no longer exists
+    -r  hard reset to head and pull
+    -s  switch to the specified <branch>"
+
+    echo "$usage"
+}
+
+runClean=0
+runReset=0
+runSwitch=0
+
+while getopts "crs:vh" opt; do
+    case $opt in
+        c)
+            runClean=1
+            ;;
+        r)
+            runReset=1
+            ;;
+        s)
+            BRANCH=$OPTARG
+            runSwitch=1
+            ;;
+        v)
+            __VERBOSE=7
+            __QUIET=""
+            ;;
+        h)
+            man
+            ;;
+  esac
+done
+
+if [ $runClean -eq 1 ]; then
+    echo clean
+    clean
+fi
+
+if [ $runReset -eq 1 ]; then
+    echo reset
+    reset
+fi
+
+if [ $runSwitch -eq 1 ]; then
+    echo switch to $BRANCH
+    switch
+fi
