@@ -21,7 +21,7 @@ function .log () {
   fi
 }
 
-clean() {
+loop() {
     COUNT=0
     echo -ne '\t'$COUNT/$TOTAL'\r'
 
@@ -32,48 +32,38 @@ clean() {
     	cd $BASE
     	cd $g/..
 
-        git branch --merged | grep -v "\*" | xargs -n 1 git branch -d ${__QUIET}
-
-        git fetch -p ${__QUIET} && for branch in `git branch -vv | awk '{print $1,$4}' | grep 'gone]' | awk '{print $1}'`; do git branch -D $branch ${__QUIET}; done
+        case $1 in
+            c)
+                clean
+                ;;
+            r)
+                reset
+                ;;
+            u)
+                update
+                ;;
+            s)
+                switch
+                ;;
+        esac
 
         echo -ne '\t'$COUNT/$TOTAL'\r'
     done
+}
+
+clean() {
+    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d ${__QUIET}
+    git fetch -p ${__QUIET} && for branch in `git branch -vv | awk '{print $1,$4}' | grep 'gone]' | awk '{print $1}'`; do git branch -D $branch ${__QUIET}; done
 }
 
 reset() {
-    COUNT=0
-    echo -ne '\t'$COUNT/$TOTAL'\r'
-
-    for g in $GITS
-    do
-        COUNT=$((COUNT+1))
-
-    	cd $BASE
-    	cd $g/..
-
-        git fetch origin ${__QUIET}
-        git reset --hard origin/master ${__QUIET}
-        git pull ${__QUIET}
-
-        echo -ne '\t'$COUNT/$TOTAL'\r'
-    done
+    git fetch origin ${__QUIET}
+    git reset --hard origin/master ${__QUIET}
+    git pull ${__QUIET}
 }
 
 update() {
-    COUNT=0
-    echo -ne '\t'$COUNT/$TOTAL'\r'
-
-    for g in $GITS
-    do
-        COUNT=$((COUNT+1))
-
-    	cd $BASE
-    	cd $g/..
-
-        git pull ${__QUIET}
-
-        echo -ne '\t'$COUNT/$TOTAL'\r'
-    done
+    git pull ${__QUIET}
 }
 
 getRemoteBranch() {
@@ -88,50 +78,35 @@ getRemoteBranch() {
 
 switch() {
 
-    unset NOTFOUND
-    COUNT=0
+    DIR=`pwd`
 
-    echo -ne '\t'$COUNT/$TOTAL'\r'
+	git checkout master --quiet
 
-    for g in $GITS
-    do
-        COUNT=$((COUNT+1))
+	if [ $BRANCH == "master" ]; then
+        .log 6 switched to $BRANCH in $DIR
+        echo -ne '\t'$COUNT/$TOTAL'\r'
+		continue
+	fi
 
-    	cd $BASE
-    	cd $g/..
-
-        DIR=`pwd`
-
-    	git checkout master --quiet
-
-    	if [ $BRANCH == "master" ]; then
-            .log 6 switched to $BRANCH in $DIR
-            echo -ne '\t'$COUNT/$TOTAL'\r'
-    		continue
-    	fi
-
-    	exists=`git show-ref refs/heads/$BRANCH`
-    	if [ -n "$exists" ]; then
-    		git checkout $BRANCH --quiet
-            .log 6 switched to $BRANCH in $DIR
-    	else
-    		getRemoteBranch
-    		if [ "$?" -eq "0" ]; then
-    			git fetch origin --quiet
-    			getRemoteBranch
-                if [ "$?" -eq "0" ]; then
-                    NOTFOUND=0
-                    .log 4 $BRANCH not found in $DIR
-                else
-                    .log 6 switched to $BRANCH in $DIR
-                fi
+	exists=`git show-ref refs/heads/$BRANCH`
+	if [ -n "$exists" ]; then
+		git checkout $BRANCH --quiet
+        .log 6 switched to $BRANCH in $DIR
+	else
+		getRemoteBranch
+		if [ "$?" -eq "0" ]; then
+			git fetch origin --quiet
+			getRemoteBranch
+            if [ "$?" -eq "0" ]; then
+                NOTFOUND=0
+                .log 4 $BRANCH not found in $DIR
             else
                 .log 6 switched to $BRANCH in $DIR
             fi
-    	fi
-
-        echo -ne '\t'$COUNT/$TOTAL'\r'
-    done
+        else
+            .log 6 switched to $BRANCH in $DIR
+        fi
+	fi
 }
 
 man() {
@@ -143,8 +118,9 @@ man() {
     -h  show this help text
     -c  cleanup: deleted merged branches; delete local branches when the remote branch no longer exists
     -r  hard reset to head and pull
-    -s  switch to the specified <branch>
-    -u  update (pull)"
+    -s  switch to the specified <branch>.  If the branch does not exist for a repo it is switched to master.
+    -u  update (pull)
+    -v  verbose: shows any output of git commands (otherwise executed with --quiet) and some custom logging"
 
     echo "$usage"
 }
@@ -174,27 +150,27 @@ while getopts "crs:vhu" opt; do
             man
             ;;
         u)
-            update
+            runUpdate=1
             ;;
   esac
 done
 
 if [ $runClean -eq 1 ]; then
     echo clean
-    clean
+    loop c
 fi
 
 if [ $runReset -eq 1 ]; then
     echo reset
-    reset
+    loop r
 fi
 
 if [ $runSwitch -eq 1 ]; then
     echo switch to $BRANCH
-    switch
+    loop s
 fi
 
 if [ $runUpdate -eq 1 ]; then
     echo update
-    update
+    loop u
 fi
