@@ -59,6 +59,23 @@ reset() {
     done
 }
 
+update() {
+    COUNT=0
+    echo -ne '\t'$COUNT/$TOTAL'\r'
+
+    for g in $GITS
+    do
+        COUNT=$((COUNT+1))
+
+    	cd $BASE
+    	cd $g/..
+
+        git pull ${__QUIET}
+
+        echo -ne '\t'$COUNT/$TOTAL'\r'
+    done
+}
+
 getRemoteBranch() {
 	remote=`git branch -a | grep $BRANCH`
     if [ -n "$remote" ]; then
@@ -118,7 +135,7 @@ switch() {
 }
 
 man() {
-    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-s <branch>] -- git branch manager for subdirectories
+    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-s <branch>] [-u] -- git branch manager for subdirectories
 
     navigates directories below the starting point and executes the selected option on each git repo found
 
@@ -126,7 +143,8 @@ man() {
     -h  show this help text
     -c  cleanup: deleted merged branches; delete local branches when the remote branch no longer exists
     -r  hard reset to head and pull
-    -s  switch to the specified <branch>"
+    -s  switch to the specified <branch>
+    -u  update (pull)"
 
     echo "$usage"
 }
@@ -134,8 +152,9 @@ man() {
 runClean=0
 runReset=0
 runSwitch=0
+runUpdate=0
 
-while getopts "crs:vh" opt; do
+while getopts "crs:vhu" opt; do
     case $opt in
         c)
             runClean=1
@@ -154,6 +173,9 @@ while getopts "crs:vh" opt; do
         h)
             man
             ;;
+        u)
+            update
+            ;;
   esac
 done
 
@@ -170,4 +192,9 @@ fi
 if [ $runSwitch -eq 1 ]; then
     echo switch to $BRANCH
     switch
+fi
+
+if [ $runUpdate] -eq 1 ]; then
+    echo update
+    update
 fi
