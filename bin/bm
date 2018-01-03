@@ -194,7 +194,7 @@ if [ $runSwitch -eq 1 ]; then
     switch
 fi
 
-if [ $runUpdate] -eq 1 ]; then
+if [ $runUpdate -eq 1 ]; then
     echo update
     update
 fi
