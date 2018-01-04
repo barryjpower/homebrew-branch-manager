@@ -69,7 +69,7 @@ update() {
 getRemoteBranch() {
 	remote=`git branch -a | grep $BRANCH`
     if [ -n "$remote" ]; then
-        	git checkout -b $BRANCH origin/$BRANCH --quiet
+        	git checkout -b $BRANCH origin/$BRANCH ${__QUIET}
 		return 1
 	else
 		return 0
@@ -80,9 +80,8 @@ switch() {
 
     DIR=`pwd`
 
-	git checkout master --quiet
-
 	if [ $BRANCH == "master" ]; then
+        git checkout master ${__QUIET}
         .log 6 switched to $BRANCH in $DIR
         echo -ne '\t'$COUNT/$TOTAL'\r'
 		continue
@@ -90,12 +89,12 @@ switch() {
 
 	exists=`git show-ref refs/heads/$BRANCH`
 	if [ -n "$exists" ]; then
-		git checkout $BRANCH --quiet
+		git checkout $BRANCH ${__QUIET}
         .log 6 switched to $BRANCH in $DIR
 	else
 		getRemoteBranch
 		if [ "$?" -eq "0" ]; then
-			git fetch origin --quiet
+			git fetch origin ${__QUIET}
 			getRemoteBranch
             if [ "$?" -eq "0" ]; then
                 NOTFOUND=0
