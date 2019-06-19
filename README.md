@@ -1,3 +1,3 @@
 ## Install
 
-brew install barryjpower/homebrew-branch-manager/branch-manage
+brew install barryjpower/homebrew-branch-manager/branch-manager
