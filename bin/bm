@@ -116,7 +116,7 @@ man() {
     where:
     -h  show this help text
     -c  cleanup: deleted local branches that are fully merged into master; delete local branches when the remote branch no longer exists
-    -r  hard reset to head and pull
+    -r  hard reset to origin/master and pull
     -s  switch to the specified <branch>.  If the branch does not exist for a repo it is switched to master.
     -u  update (pull)
     -v  verbose: shows any output of git commands (otherwise executed with --quiet) and some custom logging"
