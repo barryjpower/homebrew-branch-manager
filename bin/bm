@@ -115,7 +115,7 @@ man() {
 
     where:
     -h  show this help text
-    -c  cleanup: deleted local branches that are fully merged into HEAD; delete local branches when the remote branch no longer exists
+    -c  cleanup: deleted local branches that are fully merged into master; delete local branches when the remote branch no longer exists
     -r  hard reset to head and pull
     -s  switch to the specified <branch>.  If the branch does not exist for a repo it is switched to master.
     -u  update (pull)
