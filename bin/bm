@@ -6,6 +6,8 @@ GITS=`find . -name .git -type d -prune`
 
 TOTAL=`find . -name .git -type d -prune | wc -l`
 
+DFT_BRANCH="${DEFAULT_BRANCH:-main}"
+
 
 # set verbose level to info
 __VERBOSE=3
@@ -27,7 +29,7 @@ loop() {
 
     for g in $GITS
     do
-        COUNT=$((COUNT+1))
+      COUNT=$((COUNT+1))
 
     	cd $BASE
     	cd $g/..
@@ -45,6 +47,9 @@ loop() {
             s)
                 switch
                 ;;
+            f)
+                soft
+                ;;
         esac
 
         echo -ne '\t'$COUNT/$TOTAL'\r'
@@ -58,8 +63,12 @@ clean() {
 
 reset() {
     git fetch origin ${__QUIET}
-    git reset --hard origin/master ${__QUIET}
+    git reset --hard origin/$DFT_BRANCH ${__QUIET}
     git pull ${__QUIET}
+}
+
+soft() {
+    git reset --soft HEAD~1 ${__QUIET}
 }
 
 update() {
@@ -78,10 +87,10 @@ getRemoteBranch() {
 
 switch() {
 
-    DIR=`pwd`
+  DIR=`pwd`
 
-	if [ $BRANCH == "master" ]; then
-        git checkout master ${__QUIET}
+	if [ $BRANCH == $DFT_BRANCH ]; then
+        git checkout $DFT_BRANCH ${__QUIET}
         .log 6 switched to $BRANCH in $DIR
         echo -ne '\t'$COUNT/$TOTAL'\r'
 		continue
@@ -109,15 +118,16 @@ switch() {
 }
 
 man() {
-    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-s <branch>] [-u] -- git branch manager for subdirectories
+    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-f] [-s <branch>] [-u] -- git branch manager for subdirectories
 
     navigates directories below the starting point and executes the selected option on each git repo found
 
     where:
     -h  show this help text
-    -c  cleanup: deleted local branches that are fully merged into master; delete local branches when the remote branch no longer exists
-    -r  hard reset to origin/master and pull
-    -s  switch to the specified <branch>.  If the branch does not exist for a repo it is switched to master.
+    -c  cleanup: deleted local branches that are fully merged into \$DEFAULT_BRANCH; delete local branches when the remote branch no longer exists
+    -r  hard reset to origin/\$DEFAULT_BRANCH and pull
+    -f  soft reset of last commit
+    -s  switch to the specified <branch>.  If the branch does not exist for a repo it is switched to \$DEFAULT_BRANCH.
     -u  update (pull)
     -v  verbose: shows any output of git commands (otherwise executed with --quiet) and some custom logging"
 
@@ -128,8 +138,9 @@ runClean=0
 runReset=0
 runSwitch=0
 runUpdate=0
+softReset=0
 
-while getopts "crs:vhu" opt; do
+while getopts "crs:vhuf" opt; do
     case $opt in
         c)
             runClean=1
@@ -150,6 +161,9 @@ while getopts "crs:vhu" opt; do
             ;;
         u)
             runUpdate=1
+            ;;
+        f)
+            softReset=1
             ;;
   esac
 done
@@ -172,4 +186,9 @@ fi
 if [ $runUpdate -eq 1 ]; then
     echo update
     loop u
+fi
+
+if [ $softReset -eq 1 ]; then
+    echo soft reset
+    loop f
 fi
