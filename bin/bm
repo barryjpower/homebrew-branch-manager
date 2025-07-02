@@ -50,6 +50,9 @@ loop() {
             f)
                 soft
                 ;;
+            b)
+                rebase
+                ;;
         esac
 
         echo -ne '\t'$COUNT/$TOTAL'\r'
@@ -73,6 +76,10 @@ soft() {
 
 update() {
     git pull ${__QUIET}
+}
+
+rebase() {
+    git rebase -i $(git merge-base HEAD main)
 }
 
 getRemoteBranch() {
@@ -118,7 +125,7 @@ switch() {
 }
 
 man() {
-    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-f] [-s <branch>] [-u] -- git branch manager for subdirectories
+    usage="$(basename "$0") [-h] [-v] [-c] [-r] [-f] [-b] [-s <branch>] [-u] -- git branch manager for subdirectories
 
     navigates directories below the starting point and executes the selected option on each git repo found
 
@@ -128,6 +135,7 @@ man() {
     -r  hard reset to origin/\$DEFAULT_BRANCH and pull
     -f  soft reset of last commit
     -s  switch to the specified <branch>.  If the branch does not exist for a repo it is switched to \$DEFAULT_BRANCH.
+    -b  rebase from base of branch
     -u  update (pull)
     -v  verbose: shows any output of git commands (otherwise executed with --quiet) and some custom logging"
 
@@ -140,7 +148,7 @@ runSwitch=0
 runUpdate=0
 softReset=0
 
-while getopts "crs:vhuf" opt; do
+while getopts "crs:vhufb" opt; do
     case $opt in
         c)
             runClean=1
@@ -164,6 +172,9 @@ while getopts "crs:vhuf" opt; do
             ;;
         f)
             softReset=1
+            ;;
+        b)
+            runRebase=1
             ;;
   esac
 done
@@ -191,4 +202,9 @@ fi
 if [ $softReset -eq 1 ]; then
     echo soft reset
     loop f
+fi
+
+if [ $runRebase -eq 1 ]; then
+    echo rebase
+    loop b
 fi
