@@ -2,7 +2,7 @@ class BranchManager < Formula
   desc "Manage branches for git repos across subdirectories"
   homepage "https://github.com/barryjpower/homebrew-branch-manager"
   url "https://github.com/barryjpower/homebrew-branch-manager/archive/0.0.10.tar.gz"
-  sha256 "0bea074dbe42a25c223fc54b62f032521639de8a55aa1a1516ce818876a6e067"
+  sha256 "88a58f50222b688e9755b7631a8ecaf853946657e8a221af1ed01471af611c17"
 
   def install
     bin.install "bin/bm"
