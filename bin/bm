@@ -147,6 +147,7 @@ runReset=0
 runSwitch=0
 runUpdate=0
 softReset=0
+runRebase=0
 
 while getopts "crs:vhufb" opt; do
     case $opt in
